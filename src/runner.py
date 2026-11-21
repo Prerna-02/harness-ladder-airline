@@ -48,10 +48,15 @@ def load_yaml(name: str) -> dict:
 
 # ---------- cost ----------
 
-def cost_usd(tokens_in: int, tokens_cached: int, tokens_out: int, model_cfg: dict) -> float:
-    """Price one model's tokens. Cached input tokens are a subset of tokens_in."""
+CACHE_WRITE_PREMIUM = 0.25  # Anthropic bills 5-minute cache writes at 1.25x the input price
+
+
+def cost_usd(tokens_in: int, tokens_cached: int, tokens_out: int, model_cfg: dict,
+             tokens_cache_written: int = 0) -> float:
+    """Price one model's tokens. Cached-read and cache-written tokens are both subsets of tokens_in."""
     uncached = tokens_in - tokens_cached
     return (uncached * model_cfg["price_in"] + tokens_cached * model_cfg["price_cached_in"]
+            + tokens_cache_written * model_cfg["price_in"] * CACHE_WRITE_PREMIUM
             + tokens_out * model_cfg["price_out"]) / 1e6
 
 
@@ -110,9 +115,9 @@ def check_budget(estimate: dict[str, float], budget: dict) -> list[str]:
 
 # ---------- one conversation -> one row ----------
 
-def _tokens(messages: list[dict], role: str) -> tuple[int, int, int]:
-    """Sum (input, cached input, output) tokens over one side of the conversation."""
-    tin = tcached = tout = 0
+def _tokens(messages: list[dict], role: str) -> tuple[int, int, int, int]:
+    """Sum (input, cache-read input, cache-written input, output) tokens over one side of the conversation."""
+    tin = tcached = twritten = tout = 0
     for m in messages:
         if m.get("role") != role or not m.get("usage"):
             continue
@@ -121,7 +126,8 @@ def _tokens(messages: list[dict], role: str) -> tuple[int, int, int]:
         raw_usage = (m.get("raw_data") or {}).get("usage") or {}
         details = raw_usage.get("prompt_tokens_details") or {}
         tcached += details.get("cached_tokens") or raw_usage.get("cache_read_input_tokens") or 0
-    return tin, tcached, tout
+        twritten += raw_usage.get("cache_creation_input_tokens") or 0
+    return tin, tcached, twritten, tout
 
 
 def classify_error(sim: dict) -> str:
@@ -136,8 +142,8 @@ def classify_error(sim: dict) -> str:
 def build_row(sim: dict, *, batch_id: str, agent_cfg: dict, user_cfg: dict, level: str,
               split: str, tau2_commit: str) -> dict[str, Any]:
     messages = sim.get("messages") or []
-    a_in, a_cached, a_out = _tokens(messages, "assistant")
-    u_in, u_cached, u_out = _tokens(messages, "user")
+    a_in, a_cached, a_written, a_out = _tokens(messages, "assistant")
+    u_in, u_cached, u_written, u_out = _tokens(messages, "user")
     reward = (sim.get("reward_info") or {}).get("reward")
     return {
         "run_id": f"{batch_id}-task{sim['task_id']}-trial{sim.get('trial')}",
@@ -160,8 +166,8 @@ def build_row(sim: dict, *, batch_id: str, agent_cfg: dict, user_cfg: dict, leve
         "input_tokens": a_in,
         "cached_tokens": a_cached,
         "output_tokens": a_out,
-        "cost_usd": cost_usd(a_in, a_cached, a_out, agent_cfg),
-        "user_cost_usd": cost_usd(u_in, u_cached, u_out, user_cfg),
+        "cost_usd": cost_usd(a_in, a_cached, a_out, agent_cfg, a_written),
+        "user_cost_usd": cost_usd(u_in, u_cached, u_out, user_cfg, u_written),
         "latency_s": sim.get("duration"),
         "n_turns": len(messages),
         "termination_reason": sim.get("termination_reason"),

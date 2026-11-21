@@ -16,6 +16,11 @@ def test_cost_prices_cached_tokens_separately():
     assert runner.cost_usd(1_000_000, 400_000, 100_000, AGENT) == pytest.approx(0.06 + 0.004 + 0.05)
 
 
+def test_cache_writes_cost_a_quarter_more():
+    # 10k input tokens, all written to cache: billed at 1.25x the input price
+    assert runner.cost_usd(10_000, 0, 0, AGENT, tokens_cache_written=10_000) == pytest.approx(10_000 * 0.10 * 1.25 / 1e6)
+
+
 def test_estimate_splits_by_provider():
     est = {"agent_in": 1_000_000, "agent_out": 0, "user_in": 1_000_000, "user_out": 0}
     assert runner.estimate_batch(2, AGENT, USER, est) == pytest.approx({"anthropic": 0.2, "openrouter": 0.15})
