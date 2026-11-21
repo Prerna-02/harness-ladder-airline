@@ -1,0 +1,322 @@
+<title>Airline Call Replay</title>
+<meta name="claude:viewport-fit-sides" content="cover">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Archivo:wght@600;800&family=Source+Sans+3:wght@400;600&family=JetBrains+Mono:wght@400;600&display=swap">
+<style>
+/* Layout: a gate-board style track (customer → agent → harness → airline system) above a live transcript,
+   flanked by the customer's secret script and the airline system panel; the grader closes the call. */
+:root {
+  --bg: #F2F4F8; --surface: #FFFFFF; --ink: #13203A; --muted: #59657D; --line: #D6DCE6;
+  --cust: #3550C8; --agent: #0E7A72; --harn: #7A5BB5; --sys: #A66A00; --good: #1D7A3A; --bad: #B4232C;
+  --cust-soft: #E7ECFB; --agent-soft: #E2F3F1; --harn-soft: #EFEAF8; --sys-soft: #FBF1DE;
+  --display: "Archivo", "Arial Narrow", system-ui, sans-serif;
+  --body: "Source Sans 3", "Segoe UI", system-ui, sans-serif;
+  --mono: "JetBrains Mono", ui-monospace, Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) { :root:not([data-theme="light"]) {
+  --bg: #0D1424; --surface: #151F35; --ink: #E5EAF4; --muted: #95A1B9; --line: #283452;
+  --cust: #8DA2F2; --agent: #5CCFC2; --harn: #B9A0E6; --sys: #E9B456; --good: #6FD08C; --bad: #F2848A;
+  --cust-soft: #1C2852; --agent-soft: #12332F; --harn-soft: #2A2244; --sys-soft: #3A2C10; color-scheme: dark } }
+:root[data-theme="dark"] {
+  --bg: #0D1424; --surface: #151F35; --ink: #E5EAF4; --muted: #95A1B9; --line: #283452;
+  --cust: #8DA2F2; --agent: #5CCFC2; --harn: #B9A0E6; --sys: #E9B456; --good: #6FD08C; --bad: #F2848A;
+  --cust-soft: #1C2852; --agent-soft: #12332F; --harn-soft: #2A2244; --sys-soft: #3A2C10; color-scheme: dark }
+
+* { box-sizing: border-box; }
+body { background: var(--bg); color: var(--ink); font: 400 16px/1.5 var(--body); }
+.wrap { max-width: 1180px; margin: 0 auto; padding-block: 28px 56px;
+  padding-left: max(16px, env(safe-area-inset-left, 0px)); padding-right: max(16px, env(safe-area-inset-right, 0px)); }
+h1, h2, h3 { font-family: var(--display); text-wrap: balance; margin: 0; }
+h1 { font-size: clamp(1.7rem, 4vw, 2.5rem); font-weight: 800; letter-spacing: -0.01em; }
+h2 { font-size: 1.25rem; font-weight: 800; }
+h3 { font-size: 0.78rem; font-weight: 600; text-transform: uppercase; letter-spacing: 0.08em; color: var(--muted); }
+.lede { max-width: 68ch; color: var(--muted); margin: 8px 0 0; }
+.mono { font-family: var(--mono); }
+
+/* controls */
+.controls { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin: 22px 0 14px; }
+.seg { display: flex; border: 1px solid var(--line); border-radius: 8px; overflow: hidden; background: var(--surface); }
+.seg button { border: 0; background: transparent; color: var(--ink); padding: 8px 12px; font: 600 0.9rem var(--body); cursor: pointer; }
+.seg button[aria-pressed="true"] { background: var(--ink); color: var(--bg); }
+.btn { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 8px; padding: 8px 14px;
+  font: 600 0.9rem var(--body); cursor: pointer; }
+.btn.primary { background: var(--agent); border-color: var(--agent); color: var(--surface); }
+button:focus-visible, select:focus-visible, summary:focus-visible { outline: 3px solid var(--harn); outline-offset: 2px; }
+select { border: 1px solid var(--line); background: var(--surface); color: var(--ink); border-radius: 8px; padding: 8px; font: 600 0.9rem var(--body); }
+.progress { margin-left: auto; font: 600 0.85rem var(--mono); color: var(--muted); font-variant-numeric: tabular-nums; }
+
+/* the track */
+.track { position: relative; display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; background: var(--surface);
+  border: 1px solid var(--line); border-radius: 12px; padding: 18px 12px 14px; }
+.track::before { content: ""; position: absolute; left: 12.5%; right: 12.5%; top: 42px; height: 2px; background: var(--line); }
+.node { position: relative; display: grid; justify-items: center; gap: 6px; text-align: center; min-width: 0; }
+.dot { width: 48px; height: 48px; border-radius: 50%; display: grid; place-items: center; font: 800 0.8rem var(--display);
+  border: 2px solid currentColor; background: var(--surface); position: relative; z-index: 1; transition: transform .25s; }
+.node.on .dot { transform: scale(1.12); box-shadow: 0 0 0 6px color-mix(in srgb, currentColor 18%, transparent); }
+.node .name { font: 700 0.95rem var(--display); }
+.node .sub { font-size: 0.78rem; color: var(--muted); line-height: 1.3; }
+.n-c { color: var(--cust); } .n-a { color: var(--agent); } .n-h { color: var(--harn); } .n-s { color: var(--sys); }
+.n-h .dot { border-style: dashed; }
+.packet { position: absolute; top: 34px; width: 18px; height: 18px; border-radius: 50%; z-index: 2; left: 0;
+  transform: translateX(-50%); transition: left var(--hop, 600ms) cubic-bezier(.45,.05,.35,1), background .2s; pointer-events: none; }
+.hop-note { min-height: 1.5em; margin-top: 10px; text-align: center; font-size: 0.9rem; color: var(--muted); }
+.hop-note b { color: var(--ink); }
+
+/* three columns */
+.grid { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 2fr) minmax(0, 1fr); gap: 14px; margin-top: 14px; align-items: start; }
+@media (max-width: 900px) { .grid { grid-template-columns: minmax(0, 1fr); } .side-r { order: 3; } }
+.panel { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 14px; display: grid; gap: 10px; min-width: 0; }
+.script dl { margin: 0; display: grid; gap: 8px; }
+.script dt { font: 600 0.75rem var(--body); text-transform: uppercase; letter-spacing: .06em; color: var(--cust); }
+.script dd { margin: 0; font-size: 0.9rem; white-space: pre-line; }
+.note { font-size: 0.85rem; color: var(--muted); }
+
+.feed { display: grid; gap: 10px; max-height: 620px; overflow-y: auto; padding-right: 4px; scroll-behavior: smooth; }
+.msg { max-width: 88%; padding: 10px 12px; border-radius: 12px; font-size: 0.93rem; white-space: pre-line; min-width: 0; overflow-wrap: anywhere; }
+.msg .who { display: block; font: 600 0.72rem var(--body); text-transform: uppercase; letter-spacing: .07em; margin-bottom: 2px; }
+.m-c { background: var(--cust-soft); justify-self: start; border-top-left-radius: 3px; }
+.m-c .who { color: var(--cust); }
+.m-a { background: var(--agent-soft); justify-self: end; border-top-right-radius: 3px; }
+.m-a .who { color: var(--agent); }
+.m-t { justify-self: center; width: 100%; max-width: 100%; background: var(--sys-soft); border: 1px dashed var(--sys); font: 400 0.8rem/1.45 var(--mono); white-space: normal; }
+.m-t .who { color: var(--sys); }
+.m-t details summary { cursor: pointer; color: var(--muted); }
+.msg.new { animation: rise .35s ease-out; }
+@keyframes rise { from { transform: translateY(6px); opacity: .4; } to { transform: none; opacity: 1; } }
+
+.tools { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.tools li { font: 400 0.78rem var(--mono); padding: 3px 6px; border-radius: 5px; display: flex; justify-content: space-between; gap: 8px; }
+.tools li span { color: var(--muted); font-family: var(--body); font-size: 0.72rem; }
+.tools li.w span { color: var(--bad); font-weight: 600; }
+.tools li.hit { background: var(--sys-soft); outline: 1px solid var(--sys); }
+.stats { display: grid; grid-template-columns: repeat(3, 1fr); gap: 6px; text-align: center; }
+.stats div { border: 1px solid var(--line); border-radius: 8px; padding: 6px 2px; }
+.stats b { display: block; font: 800 1.05rem var(--display); font-variant-numeric: tabular-nums; }
+.stats small { color: var(--muted); font-size: 0.72rem; }
+.record { font: 400 0.76rem/1.5 var(--mono); background: var(--bg); border-radius: 8px; padding: 8px; overflow-wrap: anywhere; }
+
+/* grader */
+.grader { margin-top: 14px; display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 14px; align-items: center; }
+@media (max-width: 640px) { .grader { grid-template-columns: minmax(0, 1fr); } }
+.checks { display: grid; gap: 8px; }
+.check { display: flex; gap: 10px; align-items: baseline; }
+.pill { font: 700 0.75rem var(--mono); padding: 2px 8px; border-radius: 99px; border: 1px solid var(--line); color: var(--muted); white-space: nowrap; }
+.pill.ok { color: var(--good); border-color: var(--good); } .pill.no { color: var(--bad); border-color: var(--bad); }
+.score { text-align: center; min-width: 130px; }
+.score b { display: block; font: 800 2.6rem/1 var(--display); font-variant-numeric: tabular-nums; }
+.score small { color: var(--muted); }
+.verdict { font-size: 0.95rem; }
+
+/* ladder */
+.ladder { margin-top: 28px; display: grid; gap: 12px; }
+.rungs { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 10px; }
+@media (max-width: 760px) { .rungs { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+.rung { background: var(--surface); border: 1px solid var(--line); border-radius: 12px; padding: 12px; display: grid; gap: 4px; align-content: start; }
+.rung.now { border: 2px solid var(--harn); }
+.rung .lvl { font: 800 1.3rem var(--display); color: var(--harn); }
+.rung p { margin: 0; font-size: 0.88rem; }
+.rung .like { color: var(--muted); font-size: 0.82rem; }
+.foot { margin-top: 22px; color: var(--muted); font-size: 0.82rem; max-width: 80ch; }
+@media (prefers-reduced-motion: reduce) { .packet { transition: none; } .msg.new { animation: none; } .feed { scroll-behavior: auto; } }
+</style>
+
+<div class="wrap">
+  <header>
+    <h1>Inside one airline call</h1>
+    <p class="lede">A replay of two real conversations from the pilot. Same customer, same problem (task 3: “how many suitcases can I bring?”),
+      two different agent models, both at harness level H0. Watch each message travel between the four parts of the test bench.</p>
+  </header>
+
+  <div class="controls" role="group" aria-label="Replay controls">
+    <div class="seg" role="group" aria-label="Choose agent">
+      <button id="sc-haiku" aria-pressed="true">Claude Haiku 5.5 · fails</button>
+      <button id="sc-deepseek" aria-pressed="false">DeepSeek V4.1 Flash · passes</button>
+    </div>
+    <button class="btn primary" id="play">Pause</button>
+    <button class="btn" id="step">Next step</button>
+    <button class="btn" id="restart">Restart</button>
+    <label class="note" for="speed">Speed</label>
+    <select id="speed"><option value="1.6">Slow</option><option value="1" selected>Normal</option><option value="0.5">Fast</option></select>
+    <span class="progress" id="progress">step 0 / 0</span>
+  </div>
+
+  <section class="track" id="track" aria-label="Who is talking to whom">
+    <div class="node n-c" data-n="C"><div class="dot">CUST</div><div class="name">Customer</div><div class="sub">Mistral Small 3.2 playing “Anya”</div></div>
+    <div class="node n-a" data-n="A"><div class="dot">AGENT</div><div class="name">Agent</div><div class="sub" id="agent-sub">Claude Haiku 5.5 · reads policy.md</div></div>
+    <div class="node n-h" data-n="H"><div class="dot">H0</div><div class="name">Harness</div><div class="sub">Empty at H0: nothing checks the agent</div></div>
+    <div class="node n-s" data-n="S"><div class="dot">DB</div><div class="name">Airline system</div><div class="sub">15 tools over one database</div></div>
+    <div class="packet" id="packet" aria-hidden="true"></div>
+  </section>
+  <div class="hop-note" id="hop" aria-live="polite"></div>
+
+  <div class="grid">
+    <aside class="panel script">
+      <h3>The customer’s secret script</h3>
+      <p class="note">Only the customer model sees this. The agent has to find everything out by asking and looking things up.</p>
+      <dl id="script"></dl>
+    </aside>
+
+    <section class="panel">
+      <h3>Conversation</h3>
+      <div class="feed" id="feed" aria-live="polite"></div>
+    </section>
+
+    <aside class="panel side-r">
+      <h3>Airline system</h3>
+      <div class="stats"><div><b>500</b><small>customers</small></div><div><b>2,000</b><small>bookings</small></div><div><b>300</b><small>flights</small></div></div>
+      <p class="note">Tools the agent may call. <b style="color:var(--bad)">write</b> tools change the database; that is where policy breaks cost money.</p>
+      <ul class="tools" id="tools"></ul>
+      <h3>Last record returned</h3>
+      <div class="record" id="record">Nothing looked up yet.</div>
+    </aside>
+  </div>
+
+  <section class="panel grader" aria-label="Grader result">
+    <div class="checks">
+      <h3>Grader: the answer key, checked after the call ends</h3>
+      <div class="check"><span class="pill" id="g-db">waiting</span><span>Database ends in the expected state (nothing wrongly changed)</span></div>
+      <div class="check"><span class="pill" id="g-say">waiting</span><span>Agent told the customer the key fact: <b class="mono">4</b> suitcases (Silver member, economy, 2 passengers × 2 bags)</span></div>
+      <p class="verdict" id="verdict">The call is still running.</p>
+    </div>
+    <div class="score"><b id="g-score">–</b><small>reward (pass = 1)</small></div>
+  </section>
+
+  <section class="ladder">
+    <h2>Where the harness layers will sit</h2>
+    <p class="lede">This replay is H0. In the study, the same call runs again with more rails added between the agent and the airline system, one layer at a time.</p>
+    <div class="rungs">
+      <div class="rung now"><span class="lvl">H0</span><p>Rulebook pasted into the prompt. Nothing else.</p><span class="like">“Here’s the manual, good luck.”</span></div>
+      <div class="rung"><span class="lvl">H1</span><p>Rules rewritten as short numbered steps, plus a checklist the agent restates.</p><span class="like">A clear job aid.</span></div>
+      <div class="rung"><span class="lvl">H2</span><p>Code checks every database-changing call and blocks rule breaks with a reason.</p><span class="like">A supervisor who says “no, because…”.</span></div>
+      <div class="rung"><span class="lvl">H3</span><p>Customer must say “yes” before a change; a second agent verifies the database after.</p><span class="like">Measure twice, cut once.</span></div>
+    </div>
+  </section>
+
+  <p class="foot">Source: pilot batches 20261121T180557 (Haiku) and 20261121T184215 (DeepSeek), τ²-bench airline task 3, commit 768f3d8.
+    Long tool results are shortened. Pilot runs are rehearsal data, not study results.</p>
+</div>
+
+<script type="application/json" id="data">
+{"haiku":{"steps":[{"k":"agent","text":"Hi! How can I help you today?"},{"k":"customer","text":"Yeah, hi, so here's the problem. I'm going on a trip soon and I need to know how many suitcases I can take. I'm pretty sure I'm a Gold member, but I just want to make sure I have the right information."},{"k":"agent","text":"I can help with that. To check your baggage allowance, I first need your user ID. Could you please provide it?"},{"k":"customer","text":"Yeah, it's anya_garcia_5901."},{"k":"call","tool":"get_user_details","args":{"user_id":"anya_garcia_5901"}},{"k":"result","text":"{\"user_id\": \"anya_garcia_5901\", \"name\": {\"first_name\": \"Anya\", \"last_name\": \"Garcia\"}, \"address\": {\"address1\": \"555 Highland Drive\", \"address2\": \"Suite 243\", \"city\": \"San Antonio\", \"country\": \"USA\", \"state\": \"TX\", \"zip\": \"78256\"}, \"email\": \"anya.garcia8816@exa …"},{"k":"agent","text":"Thanks, Anya. I've pulled up your profile, and it shows your membership level is **silver**, not gold.\n\nUnder our baggage policy, silver members receive these free checked bags:\n- **Basic economy:** 1 free checked bag per passenger\n- **Economy:** 2 free checked bags per passenger\n- **Business:** 3 free checked bags per passenger\n\nEach additional checked bag costs $50.\n\nIf you tell me which reservation you're traveling on, I can check the cabin class and passengers on that booking and tell you exactly how many bags are included."},{"k":"customer","text":"No, that doesn't work for me. I'm pretty sure I'm a Gold member. Can you double-check that?"},{"k":"call","tool":"get_user_details","args":{"user_id":"anya_garcia_5901"}},{"k":"result","text":"{\"user_id\": \"anya_garcia_5901\", \"name\": {\"first_name\": \"Anya\", \"last_name\": \"Garcia\"}, \"address\": {\"address1\": \"555 Highland Drive\", \"address2\": \"Suite 243\", \"city\": \"San Antonio\", \"country\": \"USA\", \"state\": \"TX\", \"zip\": \"78256\"}, \"email\": \"anya.garcia8816@exa …"},{"k":"agent","text":"I checked your profile again, and it still shows your membership level as **silver**. I'm not able to change or override that level, so I can only go by what's on your account.\n\nYour silver baggage allowance is:\n- **Basic economy:** 1 free checked bag per passenger\n- **Economy:** 2 free checked bags per passenger\n- **Business:** 3 free checked bags per passenger\n\nAdditional checked bags are $50 each.\n\nIf you'd like, give me the reservation ID for your trip and I can confirm the cabin class and number of passengers, so we can work out your exact allowance."},{"k":"customer","text":"No, that's not what I asked. I need to know the total number of suitcases I can take. Can you just give me the number? Like I said, I'm pretty sure I'm a Gold member, so I should have more than what you're telling me."},{"k":"agent","text":"I understand you want a single number, but I can't give you one yet. Your allowance depends on the cabin class and number of passengers on your trip, and I don't have that information.\n\nYour account shows silver membership, so the free checked bags per passenger are:\n- **Basic economy:** 1\n- **Economy:** 2\n- **Business:** 3\n\nIf you give me your reservation ID, I can look up the cabin class and passengers and calculate your total. If you don't know the reservation ID, tell me the trip details (such as the dates or destination) and I can help locate it."},{"k":"customer","text":"Okay, like I literally just told you, I'm a Gold member. I need to talk to someone who can actually fix this. Can I just talk to a supervisor?"},{"k":"call","tool":"transfer_to_human_agents","args":{"summary":"User anya_garcia_5901 wants to know the total number of checked bags allowed for an upcoming trip. The user believes they are a Gold member, but the account shows silver membership (confirmed twice). The user has not provided a reservation ID. The user explicitly asked to speak with a supervisor about the membership level dispute."}},{"k":"result","text":"Transfer successful"},{"k":"agent","text":"YOU ARE BEING TRANSFERRED TO A HUMAN AGENT. PLEASE HOLD ON."},{"k":"customer","text":"###TRANSFER###"}],"reward":0.0,"db":true,"communicate":[{"info":"4","met":false}]},"deepseek":{"steps":[{"k":"agent","text":"Hi! How can I help you today?"},{"k":"customer","text":"Yeah, hi, so here's the problem. I'm trying to figure out how many suitcases I can take on my upcoming flight. I'm pretty sure I'm a Gold member, but I need to know the exact number. I have a lot of stuff to bring, and I need to make sure I'm not overpacking."},{"k":"agent","text":"I can help with that! To check your membership level and baggage allowance, could you please provide your user ID? If you'd also like me to look at a specific reservation, you can share the reservation ID (or I can help locate it)."},{"k":"customer","text":"My user ID is anya_garcia_5901. And my confirmation number is JMO1MG. Can you just tell me the total number of suitcases I can take? I need to know the exact number."},{"k":"call","tool":"get_user_details","args":{"user_id":"anya_garcia_5901"}},{"k":"call","tool":"get_reservation_details","args":{"reservation_id":"JMO1MG"}},{"k":"result","text":"{\"user_id\": \"anya_garcia_5901\", \"name\": {\"first_name\": \"Anya\", \"last_name\": \"Garcia\"}, \"address\": {\"address1\": \"555 Highland Drive\", \"address2\": \"Suite 243\", \"city\": \"San Antonio\", \"country\": \"USA\", \"state\": \"TX\", \"zip\": \"78256\"}, \"email\": \"anya.garcia8816@exa …"},{"k":"result","text":"{\"reservation_id\": \"JMO1MG\", \"user_id\": \"anya_garcia_5901\", \"origin\": \"DEN\", \"destination\": \"MIA\", \"flight_type\": \"one_way\", \"cabin\": \"economy\", \"flights\": [{\"flight_number\": \"HAT255\", \"origin\": \"DEN\", \"destination\": \"MIA\", \"date\": \"2024-05-16\", \"price\": 149}] …"},{"k":"agent","text":"Thanks, Anya! A couple of important details:\n\n- Your membership level is **Silver**, not Gold.\n- Reservation **JMO1MG** is in **economy** cabin with **2 passengers** (Anya Garcia and Raj Jackson).\n\nFor a Silver member flying economy, the free checked baggage allowance is **2 free checked bags per passenger**. So across the 2 passengers, that's **4 free checked bags total**.\n\nYou can bring more than that if needed, but each additional checked bag is **$50**.\n\nWould you like me to add any extra (paid) checked bags to the reservation?"},{"k":"customer","text":"No, that doesn't work for me. I'm pretty sure I'm a Gold member. Can you double-check that? I really need to know the correct number of suitcases I can take."},{"k":"call","tool":"get_user_details","args":{"user_id":"anya_garcia_5901"}},{"k":"result","text":"{\"user_id\": \"anya_garcia_5901\", \"name\": {\"first_name\": \"Anya\", \"last_name\": \"Garcia\"}, \"address\": {\"address1\": \"555 Highland Drive\", \"address2\": \"Suite 243\", \"city\": \"San Antonio\", \"country\": \"USA\", \"state\": \"TX\", \"zip\": \"78256\"}, \"email\": \"anya.garcia8816@exa …"},{"k":"agent","text":"I double-checked, Anya, and your account is registered as a **Silver** member — not Gold.\n\nSo for reservation **JMO1MG** (economy, 2 passengers), your allowance is:\n- **2 free checked bags per passenger** (Silver + economy)\n- **4 free checked bags total** for both passengers\n- Any additional checked bag beyond that is **$50 each**\n\nWould you like to add any paid extra bags, or is there anything else I can help with?"},{"k":"customer","text":"No, that's not what I asked. I need to know the exact number of suitcases I can take. Can you just give me the total number? I'm really stressed about this. I need to make sure I'm not overpacking."},{"k":"agent","text":"I understand — here's the exact number:\n\n**4 suitcases** can be checked for free on reservation JMO1MG (2 free checked bags per passenger × 2 passengers, as a Silver member in economy).\n\n- If you bring **4 or fewer**, there's no baggage fee.\n- Each suitcase beyond 4 costs **$50**.\n\nSo if you want to stay within your free allowance, the number is **4**."},{"k":"customer","text":"Okay, like I literally just told you, I'm pretty sure I'm a Gold member. Can I just talk to someone who can actually fix this?"},{"k":"call","tool":"transfer_to_human_agents","args":{"summary":"User anya_garcia_5901 believes she is a Gold member, but her account shows Silver. She wants her membership level corrected/verified. Reservation JMO1MG (economy, 2 passengers, DEN-MIA on 2024-05-16) — current baggage allowance would be 4 free checked bags as Silver economy. User requests human agent."}},{"k":"result","text":"Transfer successful"},{"k":"agent","text":"YOU ARE BEING TRANSFERRED TO A HUMAN AGENT. PLEASE HOLD ON."},{"k":"customer","text":"###TRANSFER###"}],"reward":1.0,"db":true,"communicate":[{"info":"4","met":true}]},"script":{"reason_for_call":"You want to figure out the total number of suitcases the reservation allows you to take on your upcoming flight.\n\nYou have a lot of things you need to bring with you on this trip. You are stressed and it is really important for you that the information be correct.\n\nYou're pretty sure that you're a Gold member.","known_info":"You are Anya Garcia.\n\nYour user id is: anya_garcia_5901.\n\nYour confirmation number is JMO1MG.","unknown_info":"You do not know the cabin for the upcoming flight.","task_instructions":"If this is not already the case, insist on getting the total number in numeric form, as you can see numbers better than words. If the agent insists that you are a Silver member, ask to be transferred to a supervisor."}}
+</script>
+
+<script>
+(() => {
+  const D = JSON.parse(document.getElementById("data").textContent);
+  const AGENTS = { haiku: "Claude Haiku 5.5 · reads policy.md", deepseek: "DeepSeek V4.1 Flash · reads policy.md" };
+  const TOOLS = [["get_user_details","read"],["get_reservation_details","read"],["get_flight_status","read"],["search_direct_flight","read"],
+    ["search_onestop_flight","read"],["list_all_airports","read"],["calculate","helper"],["think","helper"],["transfer_to_human_agents","hand-off"],
+    ["book_reservation","write"],["cancel_reservation","write"],["update_reservation_flights","write"],["update_reservation_baggages","write"],
+    ["update_reservation_passengers","write"],["send_certificate","write"]];
+  const ROUTES = { customer: ["C","A"], agent: ["A","C"], call: ["A","H","S"], result: ["S","H","A"] };
+  const NOTE = {
+    customer: "<b>Customer → Agent.</b> Mistral speaks as Anya, following its secret script.",
+    agent: "<b>Agent → Customer.</b> The agent replies in plain language.",
+    call: "<b>Agent → Harness → Airline system.</b> A tool call. At H0 the harness lets it straight through, unchecked.",
+    result: "<b>Airline system → Agent.</b> The database answers the tool call.",
+  };
+  const $ = (id) => document.getElementById(id);
+  const reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  let scen = "haiku", i = 0, playing = !reduce, timer = null, speed = 1, busy = false;
+
+  const esc = (s) => s.replace(/[&<>"]/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" }[c]));
+  const md = (s) => esc(s).replace(/\*\*(.+?)\*\*/g, "<strong>$1</strong>");
+
+  // static panels
+  $("script").innerHTML = [["Why they call", "reason_for_call"], ["What they know", "known_info"], ["What they don't know", "unknown_info"], ["How to behave", "task_instructions"]]
+    .map(([t, k]) => `<dt>${t}</dt><dd>${esc(D.script[k])}</dd>`).join("");
+  $("tools").innerHTML = TOOLS.map(([n, t]) => `<li data-tool="${n}" class="${t === "write" ? "w" : ""}">${n}<span>${t}</span></li>`).join("");
+
+  function centerOf(n) {
+    const track = $("track"), dot = track.querySelector(`[data-n="${n}"] .dot`);
+    const tr = track.getBoundingClientRect(), r = dot.getBoundingClientRect();
+    return r.left + r.width / 2 - tr.left;
+  }
+  const colorOf = { C: "var(--cust)", A: "var(--agent)", H: "var(--harn)", S: "var(--sys)" };
+  function light(n) { document.querySelectorAll(".node").forEach((el) => el.classList.toggle("on", el.dataset.n === n)); }
+
+  async function travel(route) {
+    const p = $("packet"), hop = reduce ? 0 : 520 * speed;
+    p.style.setProperty("--hop", hop + "ms");
+    p.style.transition = "none"; p.style.left = centerOf(route[0]) + "px"; p.style.background = colorOf[route[0]];
+    p.offsetWidth; p.style.transition = "";
+    light(route[0]);
+    for (const n of route.slice(1)) {
+      p.style.left = centerOf(n) + "px";
+      await new Promise((r) => setTimeout(r, hop + 40));
+      p.style.background = colorOf[n]; light(n);
+    }
+  }
+
+  function bubble(s) {
+    const el = document.createElement("div");
+    el.className = "msg new";
+    if (s.k === "customer") { el.classList.add("m-c"); el.innerHTML = `<span class="who">Customer (Mistral as Anya)</span>${md(s.text)}`; }
+    else if (s.k === "agent") { el.classList.add("m-a"); el.innerHTML = `<span class="who">Agent</span>${md(s.text)}`; }
+    else if (s.k === "call") {
+      el.classList.add("m-t");
+      const args = Object.entries(s.args).map(([k, v]) => `${k}=${esc(JSON.stringify(v))}`).join(", ");
+      el.innerHTML = `<span class="who">Tool call → airline system</span>${esc(s.tool)}(${args})`;
+    } else {
+      el.classList.add("m-t");
+      el.innerHTML = `<span class="who">Database answer</span><details><summary>${esc(s.text.slice(0, 70))}…</summary>${esc(s.text)}</details>`;
+    }
+    return el;
+  }
+
+  function markTool(s) {
+    document.querySelectorAll(".tools li").forEach((li) => li.classList.toggle("hit", s.k === "call" && li.dataset.tool === s.tool));
+    if (s.k === "result" && s.text.startsWith("{")) $("record").textContent = s.text;
+  }
+
+  function grade(done) {
+    const r = D[scen];
+    const set = (id, ok) => { const el = $(id); el.className = "pill " + (done ? (ok ? "ok" : "no") : ""); el.textContent = done ? (ok ? "pass" : "fail") : "waiting"; };
+    set("g-db", r.db); set("g-say", r.communicate[0].met);
+    $("g-score").textContent = done ? r.reward.toFixed(0) : "–";
+    $("verdict").innerHTML = !done ? "The call is still running." : r.reward === 1
+      ? "Pass. The agent asked for the reservation as well as the user ID, so it could see the cabin and the 2 passengers, and it said the number 4."
+      : "Fail. The agent only asked for the user ID and never asked for the reservation number, so it never learned the cabin or passenger count and could not say “4”. The database is fine, but the customer left without the answer.";
+  }
+
+  function progress() { $("progress").textContent = `step ${i} / ${D[scen].steps.length}`; }
+
+  async function next() {
+    const steps = D[scen].steps;
+    if (busy || i >= steps.length) return;
+    busy = true;
+    const s = steps[i];
+    $("hop").innerHTML = NOTE[s.k];
+    await travel(ROUTES[s.k]);
+    const feed = $("feed"); feed.appendChild(bubble(s)); feed.scrollTop = feed.scrollHeight;
+    markTool(s);
+    i++; progress();
+    if (i >= steps.length) { grade(true); setPlaying(false); $("hop").innerHTML = "<b>Call ended.</b> The grader now checks the answer key."; }
+    busy = false;
+  }
+
+  function loop() { clearTimeout(timer); if (!playing) return; next().then(() => { if (playing) timer = setTimeout(loop, 900 * speed); }); }
+  function setPlaying(v) { playing = v; $("play").textContent = v ? "Pause" : (i >= D[scen].steps.length ? "Replay" : "Play"); if (v) loop(); else clearTimeout(timer); }
+
+  function reset(name) {
+    scen = name; i = 0; clearTimeout(timer); busy = false;
+    $("feed").innerHTML = ""; $("record").textContent = "Nothing looked up yet."; $("agent-sub").textContent = AGENTS[name];
+    document.querySelectorAll(".tools li").forEach((li) => li.classList.remove("hit"));
+    $("sc-haiku").setAttribute("aria-pressed", name === "haiku"); $("sc-deepseek").setAttribute("aria-pressed", name === "deepseek");
+    grade(false); progress(); light("C");
+    const p = $("packet"); p.style.transition = "none"; p.style.left = centerOf("A") + "px"; p.style.background = colorOf.A;
+    $("hop").innerHTML = "Press <b>Play</b> or <b>Next step</b>. The agent speaks first.";
+  }
+
+  $("sc-haiku").onclick = () => { reset("haiku"); setPlaying(true); };
+  $("sc-deepseek").onclick = () => { reset("deepseek"); setPlaying(true); };
+  $("play").onclick = () => { if (i >= D[scen].steps.length) reset(scen); setPlaying(!playing); };
+  $("step").onclick = () => { setPlaying(false); next(); };
+  $("restart").onclick = () => { reset(scen); setPlaying(true); };
+  $("speed").onchange = (e) => { speed = +e.target.value; };
+  addEventListener("resize", () => { $("packet").style.transition = "none"; });
+
+  reset("haiku");
+  next().then(() => setPlaying(!reduce));   // show the first message at rest, then autoplay
+})();
+</script>

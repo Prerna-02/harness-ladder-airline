@@ -19,8 +19,15 @@ Update at the end of every session: what was done, what is next, any open proble
   - [x] Pilot DeepSeek V4.1 Flash and Qwen3.6-35B-A3B at H0, same 5 tasks: both 5/5, tool calls work, IDs confirmed.
         Both models think before answering (reasoning tokens in traces). Real per-conversation cost (billed):
         Haiku $0.0041, DeepSeek $0.0020, Qwen $0.0047 (agent + customer).
-  - [ ] **OpenRouter backends not pinned**: the customer was served by Venice and DeepInfra in the same batch; Qwen by
-        Darkbloom in fp4 (4-bit). Pin one backend per model, then re-pilot all three. Pilot batches so far are NOT study data.
+  - [x] OpenRouter backends pinned (customer deepinfra/fp8, DeepSeek baidu/fp8, Qwen parasail/fp8, no fallback);
+        verified with one call each (served host and billed price match the pinned endpoint).
+  - [x] Re-pilot 1 (pinned, no caps) stopped after 45 min: the customer looped in Haiku task 0 (~$0.04 extra OpenRouter
+        output). 4 finished conversations salvaged as rows (batch 20261121T202804); task 0 conversation lost.
+  - [x] Caps added to every model: max_tokens (agents 8192, customer 1024) + 180 s timeout per call.
+  - [x] Re-pilot 2 (pinned + caps): Haiku 4/5, DeepSeek 4/5, Qwen 5/5; no hangs. BUT the customer (Mistral Small 3.2 on
+        DeepInfra) looped again in Haiku task 5: 12 replies hit the 1024 cap repeating "I'm a Gold member, I know I am...",
+        and the task failed because of the customer. 0 loops in 15 earlier conversations served mostly by Venice.
+  - [ ] **Decide the customer fix** (user), then re-pilot all three agents once more.
 - [ ] Day 2: H1 rules, H2 gates + tests, H3 verifier; Haiku + open-weight H0-H3
 - [ ] Day 3: Sonnet H0; analysis; dashboard
 - [ ] Day 4: paper draft
@@ -28,8 +35,10 @@ Update at the end of every session: what was done, what is next, any open proble
 
 ## Next step
 
-1. Pin one OpenRouter backend per model (customer, DeepSeek, Qwen) in configs/models.yaml; verify with one call each.
-2. Re-run the three 5-task H0 pilots with pinned backends (~$0.06); check traces; then start Day 2.
+1. User decision: customer-simulator fix (options: newer Mistral Small 2603 served by Mistral; or 3.2 + repetition penalty).
+2. Flag any conversation where a customer reply hits the length cap as error=customer_loop (excluded and re-run, like
+   error=credit), then re-pilot Haiku, DeepSeek and Qwen on the 5 tasks; check traces by eye.
+3. Day 2: H1 rules, H2 gates + tests, H3 verifier.
 
 ## Open problems
 
