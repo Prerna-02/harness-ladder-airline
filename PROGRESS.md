@@ -35,6 +35,16 @@ Update at the end of every session: what was done, what is next, any open proble
         Customer quirk seen: it sometimes says "I already gave you my user ID" before it has. Harmless so far; watch it.
   - [x] docs/call-replay.html: animated replay of task 3 for all three agents (also published as a private artifact).
 - [ ] Day 2: H1 rules, H2 gates + tests, H3 verifier; Haiku + open-weight H0-H3
+  - [x] H1 rules (src/harness/h1_rules.md) + checklist restated in the confirmation message (tau2's `think` tool is
+        disabled in this commit, so the checklist goes in the message). H2: 10 gates (src/harness/h2_gates.py).
+        H3: explicit-yes check + verifier call (src/harness/h3_verify.py). HarnessAgent registered as harness_H1..H3.
+        57 tests pass; every expected write in the 30 core tasks passes all gates (no over-blocking on the answer key).
+  - [x] Level pilot, Haiku, core tasks 5/7/12/39/40, 1 trial (batches 20261121T224909..225305): H0 2/5, H1 1/5,
+        H2 2/5, H3 2/5; $0.144 total. Agents registered correctly; H3 verifier ran on every write (all OK); 0 blocks
+        and 0 confirm rejections. Replaying all 20 conversations' writes through the gates: none would be blocked.
+        Failures were omissions (tasks 12, 39: needed write not done) and one customer going off-script (task 7: the
+        customer asked to cancel two extra reservations its script never mentions, and said yes).
+  - [ ] Haiku H0-H3 core batches (30 tasks x 2 trials, 240 conversations)
 - [ ] Day 3: Sonnet H0; analysis; dashboard
 - [ ] Day 4: paper draft
 - [ ] Extension items (see PRD §5)
@@ -52,5 +62,9 @@ Haiku H0-H3 core batches (30 tasks x 2 trials).
 - Pilot rows 1-15 were priced with older cost code (no cache-write premium; OpenRouter at list price without cache
   discount, ~80% too high). Rows are append-only, so they stay; analysis must recompute cost from traces with
   runner.build_row, and exclude pilot batches (20261121T180557, 20261121T184215, 20261121T184407) from study results.
+- Gate coverage gap: the insurance-covered-reason rule (health/weather) is free text; the cancel gate allows any
+  insured reservation and leaves the reason to the prompt. Report in the paper.
+- The simulated customer sometimes goes off-script (task 7, H0-H2). Audit failed conversations for customer error
+  before attributing failures to the agent (sample by hand; report the rate).
 - Credit-error detection (`error=credit`) is a text match on the saved simulation; confirm it on a real credit error.
 - H1-H3 agents must be registered with tau2's registry at runtime from our code (never by editing tau2-bench).
