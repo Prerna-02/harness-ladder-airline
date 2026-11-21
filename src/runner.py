@@ -1,8 +1,8 @@
 """Experiment runner: one model x one harness level x a task split x N trials.
 
 Every conversation becomes one row in results/runs.csv (append only) and its full trace is kept in
-results/traces/<batch_id>.json (tau2's own results file). Cost is computed from token counts and the prices in
-configs/models.yaml, because LiteLLM's price table does not cover the OpenRouter models.
+results/traces/<batch_id>.json (tau2's own results file). Cost: OpenRouter calls use the billed usage.cost from
+the response; Anthropic calls are priced from token counts and configs/models.yaml (LiteLLM has no OpenRouter prices).
 
 Run from the repo root inside tau2's environment:
     uv run --project tau2-bench python -m src.runner --model haiku-5.5 --level H0 --tasks core --limit 5 --trials 1 --dry-run
@@ -115,19 +115,29 @@ def check_budget(estimate: dict[str, float], budget: dict) -> list[str]:
 
 # ---------- one conversation -> one row ----------
 
-def _tokens(messages: list[dict], role: str) -> tuple[int, int, int, int]:
-    """Sum (input, cache-read input, cache-written input, output) tokens over one side of the conversation."""
-    tin = tcached = twritten = tout = 0
+def _side(messages: list[dict], role: str, cfg: dict) -> tuple[int, int, int, float]:
+    """Sum (input tokens, cache-read input tokens, output tokens, cost USD) over one side of the conversation.
+
+    OpenRouter returns the amount it actually billed in usage.cost (cache discounts included), so that is used
+    when present; otherwise the call is priced from its tokens and configs/models.yaml.
+    """
+    tin = tcached = tout = 0
+    usd = 0.0
     for m in messages:
         if m.get("role") != role or not m.get("usage"):
             continue
-        tin += m["usage"].get("prompt_tokens") or 0
-        tout += m["usage"].get("completion_tokens") or 0
+        p_in = m["usage"].get("prompt_tokens") or 0
+        p_out = m["usage"].get("completion_tokens") or 0
         raw_usage = (m.get("raw_data") or {}).get("usage") or {}
         details = raw_usage.get("prompt_tokens_details") or {}
-        tcached += details.get("cached_tokens") or raw_usage.get("cache_read_input_tokens") or 0
-        twritten += raw_usage.get("cache_creation_input_tokens") or 0
-    return tin, tcached, twritten, tout
+        p_cached = details.get("cached_tokens") or raw_usage.get("cache_read_input_tokens") or 0
+        billed = raw_usage.get("cost")
+        if cfg["provider"] == "openrouter" and isinstance(billed, (int, float)):
+            usd += billed
+        else:
+            usd += cost_usd(p_in, p_cached, p_out, cfg, raw_usage.get("cache_creation_input_tokens") or 0)
+        tin, tcached, tout = tin + p_in, tcached + p_cached, tout + p_out
+    return tin, tcached, tout, usd
 
 
 def classify_error(sim: dict) -> str:
@@ -142,8 +152,8 @@ def classify_error(sim: dict) -> str:
 def build_row(sim: dict, *, batch_id: str, agent_cfg: dict, user_cfg: dict, level: str,
               split: str, tau2_commit: str) -> dict[str, Any]:
     messages = sim.get("messages") or []
-    a_in, a_cached, a_written, a_out = _tokens(messages, "assistant")
-    u_in, u_cached, u_written, u_out = _tokens(messages, "user")
+    a_in, a_cached, a_out, a_usd = _side(messages, "assistant", agent_cfg)
+    _, _, _, u_usd = _side(messages, "user", user_cfg)
     reward = (sim.get("reward_info") or {}).get("reward")
     return {
         "run_id": f"{batch_id}-task{sim['task_id']}-trial{sim.get('trial')}",
@@ -166,8 +176,8 @@ def build_row(sim: dict, *, batch_id: str, agent_cfg: dict, user_cfg: dict, leve
         "input_tokens": a_in,
         "cached_tokens": a_cached,
         "output_tokens": a_out,
-        "cost_usd": cost_usd(a_in, a_cached, a_out, agent_cfg, a_written),
-        "user_cost_usd": cost_usd(u_in, u_cached, u_out, user_cfg, u_written),
+        "cost_usd": a_usd,
+        "user_cost_usd": u_usd,
         "latency_s": sim.get("duration"),
         "n_turns": len(messages),
         "termination_reason": sim.get("termination_reason"),

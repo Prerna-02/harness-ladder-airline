@@ -49,6 +49,16 @@ def test_build_row_counts_agent_and_user_tokens_apart():
     assert row["user_cost_usd"] == pytest.approx((100 * 0.075 + 10 * 0.20) / 1e6)
 
 
+def test_openrouter_cost_uses_billed_amount():
+    sim = _sim()
+    sim["messages"][0]["raw_data"] = {"usage": {"cost": 0.0042}}  # user side is on OpenRouter
+    row = runner.build_row(sim, batch_id="b", agent_cfg=AGENT, user_cfg=USER, level="H0",
+                           split="core", tau2_commit="abc")
+    assert row["user_cost_usd"] == pytest.approx(0.0042)
+    # Anthropic side prices tokens: 200 uncached + 800 cached in, 50 out
+    assert row["cost_usd"] == pytest.approx((200 * 0.10 + 800 * 0.01 + 50 * 0.50) / 1e6)
+
+
 def test_credit_error_is_not_an_agent_failure():
     sim = _sim(termination="agent_error", reward=0.0)
     sim["messages"].append({"role": "assistant", "content": "Error 402: requires more credits"})
