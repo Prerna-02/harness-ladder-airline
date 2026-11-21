@@ -59,6 +59,16 @@ def test_openrouter_cost_uses_billed_amount():
     assert row["cost_usd"] == pytest.approx((200 * 0.10 + 800 * 0.01 + 50 * 0.50) / 1e6)
 
 
+def test_customer_reply_cut_by_cap_is_flagged_as_loop():
+    sim = _sim(reward=0.0)
+    assert runner.classify_error(sim) == ""
+    sim["messages"][0]["raw_data"] = {"choices": [{"finish_reason": "length"}]}  # customer reply hit max_tokens
+    assert runner.classify_error(sim) == "customer_loop"
+    sim["messages"][1]["raw_data"]["choices"] = [{"finish_reason": "length"}]  # an agent hitting the cap is not
+    sim["messages"][0]["raw_data"] = {}
+    assert runner.classify_error(sim) == ""
+
+
 def test_credit_error_is_not_an_agent_failure():
     sim = _sim(termination="agent_error", reward=0.0)
     sim["messages"].append({"role": "assistant", "content": "Error 402: requires more credits"})

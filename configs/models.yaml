@@ -62,15 +62,16 @@ agents:
 
 # The simulated customer. Fixed for the whole study (golden rule 2). Must be from a family that is never an agent,
 # including in the extension (which adds OpenAI and Gemini agents), so Mistral.
-# Approved by the user on 2026-11-21. Do not change for the rest of the study.
+# 2026-11-22: changed from Mistral Small 3.2 (deepinfra/fp8) to Mistral Small 2603 served by Mistral itself, before any
+# study run, because 3.2 fell into repetition loops at temperature 0 (2 of 10 pilot conversations). Approved by the user.
 user_simulator:
-  litellm_id: openrouter/mistralai/mistral-small-3.2-24b-instruct
+  litellm_id: openrouter/mistralai/mistral-small-2603
   provider: openrouter
-  price_in: 0.075           # deepinfra/fp8 endpoint (not the cheaper flex or dearer priority tier)
-  price_cached_in: 0.075
-  price_out: 0.20
+  price_in: 0.15            # mistral/zdr endpoint (Mistral's own, zero data retention)
+  price_cached_in: 0.15
+  price_out: 0.60
   llm_args:
     temperature: 0.0
     max_tokens: 1024
     timeout: 180
-    extra_body: {provider: {order: [deepinfra/fp8], allow_fallbacks: false}}
+    extra_body: {provider: {order: [mistral/zdr], allow_fallbacks: false}}

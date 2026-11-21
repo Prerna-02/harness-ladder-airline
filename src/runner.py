@@ -140,13 +140,24 @@ def _side(messages: list[dict], role: str, cfg: dict) -> tuple[int, int, int, fl
     return tin, tcached, tout, usd
 
 
+def _customer_hit_cap(sim: dict) -> bool:
+    """A customer reply cut off by max_tokens means the simulator broke (e.g. a repetition loop), not the agent."""
+    for m in sim.get("messages") or []:
+        choices = (m.get("raw_data") or {}).get("choices") or [{}]
+        if m.get("role") == "user" and choices[0].get("finish_reason") == "length":
+            return True
+    return False
+
+
 def classify_error(sim: dict) -> str:
+    """'' for a clean conversation. 'credit' and 'customer_loop' rows are excluded and re-run, never scored."""
     reason = sim.get("termination_reason") or ""
-    if reason not in ERROR_TERMINATIONS:
-        return ""
     # shortcut: credit errors are found by text match on the saved simulation; upgrade if a provider words it differently
-    text = json.dumps(sim).lower()
-    return "credit" if any(k in text for k in CREDIT_MARKERS) else reason
+    if reason in ERROR_TERMINATIONS and any(k in json.dumps(sim).lower() for k in CREDIT_MARKERS):
+        return "credit"
+    if _customer_hit_cap(sim):
+        return "customer_loop"
+    return reason if reason in ERROR_TERMINATIONS else ""
 
 
 def build_row(sim: dict, *, batch_id: str, agent_cfg: dict, user_cfg: dict, level: str,

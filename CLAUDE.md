@@ -119,3 +119,12 @@ uv run --project tau2-bench python -m pytest tests/          # must pass before 
   OpenRouter prices on 2026-11-21: DeepSeek V4.1 Flash $0.05/$0.199, Qwen3.6-35B-A3B $0.10/$0.90 (PRD §9 table is older).
 - 2026-11-21: Customer simulator fixed for the whole study: openrouter/mistralai/mistral-small-3.2-24b-instruct,
   temperature 0 (a family never used as an agent, including the extension). Approved by the user.
+- 2026-11-22: OpenRouter backends pinned, one endpoint per model, no fallback (DeepSeek baidu/fp8, Qwen parasail/fp8,
+  customer mistral/zdr): OpenRouter otherwise switches hosts and precision (Qwen was served fp4) between calls.
+  Every model has max_tokens (agents 8192, customer 1024) and a 180 s timeout per call.
+- 2026-11-22: Customer simulator changed, before any study run, to openrouter/mistralai/mistral-small-2603 served by
+  Mistral, temperature 0: Mistral Small 3.2 fell into repetition loops (2 of 10 pilot conversations). Approved by the user.
+  A conversation where a customer reply hits the length cap gets error=customer_loop: excluded and re-run, like
+  error=credit, never counted as an agent failure.
+- 2026-11-22: Cost of OpenRouter calls = billed usage.cost from the response; Anthropic calls are token-priced.
+  Pilot batches (all of 2026-11-21/22 before the final pilot) are rehearsal data and are excluded from study results.

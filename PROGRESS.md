@@ -4,7 +4,7 @@ Update at the end of every session: what was done, what is next, any open proble
 
 ## Status
 
-- [ ] Day 1: τ²-bench + OpenRouter set up, task split saved, harness switches built, $0.50 pilot run
+- [x] Day 1: τ²-bench + OpenRouter set up, task split saved, harness switches built, $0.50 pilot run
   - [x] τ²-bench cloned and pinned (commit 768f3d8), `uv sync` done, `tau2 check-data` passes (needs PYTHONUTF8=1 on Windows)
   - [x] Task split saved: `configs/tasks.yaml` (tau2's published train/test split = core 30 / held-out 20)
   - [x] Harness switches: `src/harness/levels.py` (H0 = tau2 `llm_agent`; H1-H3 switches defined, agents built Day 2)
@@ -27,7 +27,13 @@ Update at the end of every session: what was done, what is next, any open proble
   - [x] Re-pilot 2 (pinned + caps): Haiku 4/5, DeepSeek 4/5, Qwen 5/5; no hangs. BUT the customer (Mistral Small 3.2 on
         DeepInfra) looped again in Haiku task 5: 12 replies hit the 1024 cap repeating "I'm a Gold member, I know I am...",
         and the task failed because of the customer. 0 loops in 15 earlier conversations served mostly by Venice.
-  - [ ] **Decide the customer fix** (user), then re-pilot all three agents once more.
+  - [x] Customer switched to Mistral Small 2603 (mistral/zdr, temp 0, cap 1024); conversations where a customer reply
+        hits the cap are flagged error=customer_loop (excluded and re-run). 10 tests pass.
+  - [x] **Final H0 pilot** (batches 20261121T222916 Haiku, 20261121T223042 DeepSeek, 20261121T223232 Qwen): 15/15 passed,
+        0 customer loops (max customer reply 90 tokens), every call served by its pinned host. Spend $0.078
+        (Haiku $0.0194, DeepSeek $0.0049, Qwen $0.0535). Tasks 0-5 look easy at H0 (ceiling); the full 30 will spread more.
+        Customer quirk seen: it sometimes says "I already gave you my user ID" before it has. Harmless so far; watch it.
+  - [x] docs/call-replay.html: animated replay of task 3 for all three agents (also published as a private artifact).
 - [ ] Day 2: H1 rules, H2 gates + tests, H3 verifier; Haiku + open-weight H0-H3
 - [ ] Day 3: Sonnet H0; analysis; dashboard
 - [ ] Day 4: paper draft
@@ -35,10 +41,9 @@ Update at the end of every session: what was done, what is next, any open proble
 
 ## Next step
 
-1. User decision: customer-simulator fix (options: newer Mistral Small 2603 served by Mistral; or 3.2 + repetition penalty).
-2. Flag any conversation where a customer reply hits the length cap as error=customer_loop (excluded and re-run, like
-   error=credit), then re-pilot Haiku, DeepSeek and Qwen on the 5 tasks; check traces by eye.
-3. Day 2: H1 rules, H2 gates + tests, H3 verifier.
+Day 2: write H1 rules (src/harness/h1_rules.md) and H2 gates + one allowed/one blocked unit test each, from the policy and
+core tasks only; H3 confirm/verify; register H1-H3 agents with tau2 at runtime; 5-task pilot per new level; then the
+Haiku H0-H3 core batches (30 tasks x 2 trials).
 
 ## Open problems
 
