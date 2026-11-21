@@ -35,5 +35,5 @@ def tau2_agent_name(level: str) -> str:
     switches = LEVELS[level]  # KeyError on an unknown level is intended
     if switches == Switches():
         return "llm_agent"
-    # H1..H3 agents are built on Day 2 (PROGRESS.md) and registered with tau2's registry at runtime.
-    raise NotImplementedError(f"{level} agent is not built yet (Day 2).")
+    # H1..H3: src.harness.agent.HarnessAgent, registered with tau2's registry at runtime under this name.
+    return f"harness_{level}"

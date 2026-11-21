@@ -149,6 +149,12 @@ def _customer_hit_cap(sim: dict) -> bool:
     return False
 
 
+def _harness_count(messages: list[dict], kind: str) -> int:
+    """How many harness events of this kind (block, verify, fallback) the agent's messages recorded."""
+    return sum(1 for m in messages for e in ((m.get("raw_data") or {}).get("harness") or {}).get("events", [])
+               if e.get("type") == kind)
+
+
 def classify_error(sim: dict) -> str:
     """'' for a clean conversation. 'credit' and 'customer_loop' rows are excluded and re-run, never scored."""
     reason = sim.get("termination_reason") or ""
@@ -183,7 +189,8 @@ def build_row(sim: dict, *, batch_id: str, agent_cfg: dict, user_cfg: dict, leve
         "reward": reward,
         "passed": reward == 1.0,
         # Filled later by the trace audits (violations, over-blocking, said-vs-did).
-        "n_violations": "", "violated_rules": "", "n_blocks": "", "n_false_blocks": "", "said_vs_did_flag": "",
+        "n_violations": "", "violated_rules": "", "n_false_blocks": "", "said_vs_did_flag": "",
+        "n_blocks": _harness_count(messages, "block"),
         "input_tokens": a_in,
         "cached_tokens": a_cached,
         "output_tokens": a_out,
@@ -231,6 +238,8 @@ def run_batch(task_ids: list[str], level: str, agent_cfg: dict, user_cfg: dict, 
     from tau2.run import get_tasks
     from tau2.runner import run_tasks
 
+    from src.harness.agent import register_levels
+    register_levels()
     config = TextRunConfig(
         domain=tasks_cfg["domain"],
         agent=tau2_agent_name(level),
