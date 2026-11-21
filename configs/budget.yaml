@@ -1,0 +1,13 @@
+# Budget guard inputs (golden rule 6).
+# OpenRouter: the live remaining credit is read from GET https://openrouter.ai/api/v1/key before every batch.
+# Anthropic: there is no balance endpoint for a normal API key, so set the credit you have loaded here.
+#   Spend so far is summed from results/runs.csv (cost_usd of anthropic rows).
+anthropic_credit_usd: null   # TODO(user): set to your Anthropic credit balance, e.g. 10.0
+
+# Tokens per conversation, used only by --dry-run estimates before real numbers exist.
+# PRD §9 guess for the agent; the customer-simulator numbers are a guess. Replace both with pilot averages.
+estimate_tokens_per_conversation:
+  agent_in: 165000
+  agent_out: 2500
+  user_in: 60000
+  user_out: 1500

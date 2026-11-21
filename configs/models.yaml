@@ -1,0 +1,52 @@
+# Models for the study. Prices are USD per 1M tokens.
+# Sources, checked 2026-11-21:
+#   Anthropic: Claude API pricing table (cached 2026-11-03 in the claude-api skill). Haiku 5.5 price holds for
+#              prompts up to 100K tokens; above that it is $0.50 / $2.50. Cache read is about 0.1x input.
+#   OpenRouter: GET https://openrouter.ai/api/v1/models on 2026-11-21. OpenRouter prices can change; re-check at each batch.
+# LiteLLM's own price table does not know the OpenRouter models, so the runner computes cost from token counts
+# and these prices (never from tau2's agent_cost / user_cost).
+
+agents:
+  haiku-5.5:
+    litellm_id: anthropic/claude-haiku-5-5
+    provider: anthropic
+    price_in: 0.10
+    price_cached_in: 0.01
+    price_out: 0.50
+    # Claude 5.5 models return HTTP 400 on a non-default temperature, so no temperature here.
+    # Prompt caching: LiteLLM adds cache_control to the system prompt (policy) on every call.
+    llm_args:
+      cache_control_injection_points: [{location: message, role: system}]
+  sonnet-5.5:
+    litellm_id: anthropic/claude-sonnet-5-5
+    provider: anthropic
+    price_in: 2.00
+    price_cached_in: 0.10
+    price_out: 10.00
+    llm_args:
+      cache_control_injection_points: [{location: message, role: system}]
+  deepseek-v4.1-flash:
+    litellm_id: openrouter/deepseek/deepseek-v4.1-flash
+    provider: openrouter
+    price_in: 0.05
+    price_cached_in: 0.05   # assume no cache discount until the pilot shows one
+    price_out: 0.199
+    llm_args: {temperature: 0.0}
+  qwen3.6-35b-a3b:
+    litellm_id: openrouter/qwen/qwen3.6-35b-a3b
+    provider: openrouter
+    price_in: 0.10
+    price_cached_in: 0.10
+    price_out: 0.90
+    llm_args: {temperature: 0.0}
+
+# The simulated customer. Fixed for the whole study (golden rule 2). Must be from a family that is never an agent,
+# including in the extension (which adds OpenAI and Gemini agents), so Mistral.
+# Approved by the user on 2026-11-21. Do not change for the rest of the study.
+user_simulator:
+  litellm_id: openrouter/mistralai/mistral-small-3.2-24b-instruct
+  provider: openrouter
+  price_in: 0.075
+  price_cached_in: 0.075
+  price_out: 0.20
+  llm_args: {temperature: 0.0}

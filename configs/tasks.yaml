@@ -1,0 +1,19 @@
+# Task split for the airline domain (50 tasks).
+# We use tau2-bench's own published split (data/tau2/domains/airline/split_tasks.json at commit 768f3d8):
+# train = 30 tasks -> core, test = 20 tasks -> held-out. It is fixed, public and already 30/20, so other researchers
+# can reproduce it exactly. We never look at held-out tasks while writing H2 gates (golden rule 4).
+#
+# Grading: reward = DB state check x COMMUNICATE check. COMMUNICATE uses the original deterministic substring
+# matcher (scorer: substring) instead of tau2's default GPT-5.5 judge: free, deterministic, no OpenAI key.
+# Only these tasks have a communicate check: core 3, 7, 11, 14, 23; held-out 18.
+
+domain: airline
+tau2_commit: 768f3d8fe8528b4f32a5096f9ed008ae50f48ead
+communicate_scorer: substring
+seed: 300          # tau2 default seed; trial k uses the seeds tau2 derives from it
+
+core: ["0", "1", "3", "4", "5", "7", "9", "10", "11", "12", "14", "15", "17", "20", "21",
+       "23", "27", "28", "33", "34", "36", "38", "39", "40", "41", "42", "43", "46", "47", "49"]
+
+held_out: ["2", "6", "8", "13", "16", "18", "19", "22", "24", "25", "26", "29", "30", "31", "32",
+           "35", "37", "44", "45", "48"]

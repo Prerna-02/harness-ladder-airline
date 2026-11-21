@@ -1,0 +1,11 @@
+# Secrets: never commit
+.env
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# Third-party benchmark checkout (pinned by commit hash in every results row)
+tau2-bench/
