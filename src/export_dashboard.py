@@ -1,6 +1,7 @@
 """Write the live dashboard's data files from the analysis tables (run `python -m src.analyze` first).
 
-Outputs results/dashboard/: summary.csv (one row per model x level), tasks.csv (passes per task),
+Outputs results/dashboard/: summary.csv (one row per model x level), compare15.csv (the same on the core_15 tasks
+Sonnet ran), tasks.csv (passes per task),
 progress.csv (planned core conditions and whether each has study data). The findings log is
 results/findings.csv, written by hand as findings come in, and is uploaded as it is.
 
@@ -40,6 +41,13 @@ def main() -> None:
             "cost_per_conversation", "cost_per_safe_completion", "avg_input_tokens", "avg_output_tokens", "avg_turns",
             "avg_latency_s"] + [c for c in summary.columns if c.startswith("fail_")]
     summary[keep].round(6).to_csv(OUT / "summary.csv", index=False)
+
+    # Every condition on the same 15 tasks Sonnet ran (core_15), for the like-for-like comparison.
+    c15 = pd.read_csv(RESULTS / "summary_core15.csv")
+    c15["model"] = c15.model_id.map(NAMES).fillna(c15.model_id)
+    c15["condition"] = c15.model + " · " + c15.harness_level
+    c15[["condition", "model", "harness_level", "n_tasks", "n_scored", "passed", "pass_rate", "pass_ci_low", "pass_ci_high",
+         "safe_rate", "rule_violations", "cost_per_conversation"]].round(6).to_csv(OUT / "compare15.csv", index=False)
 
     runs["model"] = runs.model_id.map(NAMES).fillna(runs.model_id)
     tasks = (runs.groupby(["model", "harness_level", "task_id"])
