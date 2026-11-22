@@ -9,3 +9,6 @@ __pycache__/
 
 # Third-party benchmark checkout (pinned by commit hash in every results row)
 tau2-bench/
+
+# tau2 writes these while a batch is running
+results/traces/.results_*.json
