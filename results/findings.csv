@@ -1,0 +1,8 @@
+date,model,finding
+2026-11-21,All,"Pilot: OpenRouter switched hosts mid-batch (Qwen served in 4-bit). Every OpenRouter model is now pinned to one fp8 host with no fallback."
+2026-11-22,Customer,"Mistral Small 3.2 fell into repetition loops at temperature 0 (2 of 10 pilot conversations). Customer switched to Mistral Small 2603 before any study run; loops are flagged and re-run."
+2026-11-22,All,"The simulated customer sometimes goes off-script (pilot task 7 asked to cancel extra bookings). Failed conversations need a customer-error audit before blaming the agent."
+2026-11-22,Haiku 5.5,"Pass rate 45/60 at every level. Haiku broke a rule in 1 of 41 changes at H0 and none above, so the rails had little to fix; most failures are missed actions."
+2026-11-22,DeepSeek V4.1 Flash,"Clearer rules and code checks lifted DeepSeek from 41/60 (H0) to 45/60 (H1) and 49/60 (H2); rule violations fell from 6 at H0 to 0."
+2026-11-22,DeepSeek V4.1 Flash,"In the harness pilot the H3 verifier caught a real error: an upgrade charged $1,182 when the customer had confirmed $662."
+2026-11-22,Qwen3.6-35B-A3B,"Parasail rate-limited OpenRouter's shared pool and refused every call; Qwen moved to DeepInfra fp8 before any study data."
