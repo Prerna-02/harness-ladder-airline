@@ -128,3 +128,5 @@ uv run --project tau2-bench python -m pytest tests/          # must pass before 
   error=credit, never counted as an agent failure.
 - 2026-11-22: Cost of OpenRouter calls = billed usage.cost from the response; Anthropic calls are token-priced.
   Pilot batches (all of 2026-11-21/22 before the final pilot) are rehearsal data and are excluded from study results.
+- 2026-11-22: Qwen3.6-35B-A3B pin moved from parasail/fp8 to deepinfra/fp8 ($0.10/$0.95): Parasail rate-limited
+  OpenRouter's shared pool (all 15 harness-pilot calls refused). No Qwen study data existed yet. Approved by the user.

@@ -51,14 +51,14 @@ agents:
   qwen3.6-35b-a3b:
     litellm_id: openrouter/qwen/qwen3.6-35b-a3b
     provider: openrouter
-    price_in: 0.10          # parasail/fp8 endpoint (pilot 1 was served by darkbloom/fp4: not used for study data)
-    price_cached_in: 0.025
-    price_out: 0.90
+    price_in: 0.10          # deepinfra/fp8 endpoint (2026-11-22: moved from parasail/fp8, which rate-limited
+    price_cached_in: 0.10   # OpenRouter's shared pool; no Qwen study data existed yet)
+    price_out: 0.95
     llm_args:
       temperature: 0.0
       max_tokens: 8192
       timeout: 180
-      extra_body: {provider: {order: [parasail/fp8], allow_fallbacks: false}}
+      extra_body: {provider: {order: [deepinfra/fp8], allow_fallbacks: false}}
 
 # The simulated customer. Fixed for the whole study (golden rule 2). Must be from a family that is never an agent,
 # including in the extension (which adds OpenAI and Gemini agents), so Mistral.
