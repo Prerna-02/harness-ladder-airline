@@ -53,7 +53,13 @@ Update at the end of every session: what was done, what is next, any open proble
         correct block). H3 verifier ran 44 times. Run survived a laptop sleep (paused and resumed, no errors).
         Caveat: violation counts use our own gates, so H2's 0 is partly by construction; an independent audit is
         needed in the analysis.
-  - [ ] DeepSeek and Qwen: 5-task harness pilot (H1-H3, tasks 5/7/12/39/40), then full H0-H3 batches
+  - [x] DeepSeek harness pilot (H1-H3, tasks 5/7/12/39/40): clean; the H3 verifier caught a wrong upgrade charge.
+  - [x] **DeepSeek H0-H3 core batches** (20261122T102206 H0, 104153 H1, 110402 H2, plus H3): 41, 45, 49, 47 of 60;
+        rule violations 6 -> 0; agent cost $0.0012 -> $0.0019 per conversation; first over-block at H3 (audit it).
+  - [x] Qwen moved to deepinfra/fp8 (Parasail refused all calls). Qwen pilot H0-H3 on tasks 5/7/12/39/40: 3, 2, 3, 2
+        of 5; 0 errors, 0 loops, all calls on DeepInfra. Cost ~$0.018 per conversation (heavy thinking, no cache
+        discount): full Qwen batches ~ $4.3 of OpenRouter credit.
+  - [ ] Qwen H0-H3 core batches (awaiting user go-ahead on ~$4.3 spend)
 - [ ] Day 3: Sonnet H0; analysis; dashboard
 - [ ] Day 4: paper draft
 - [ ] Extension items (see PRD §5)
@@ -75,5 +81,7 @@ Haiku H0-H3 core batches (30 tasks x 2 trials).
   insured reservation and leaves the reason to the prompt. Report in the paper.
 - The simulated customer sometimes goes off-script (task 7, H0-H2). Audit failed conversations for customer error
   before attributing failures to the agent (sample by hand; report the rate).
+- H3 verifier judges each single change against the whole request, so in multi-step tasks it flags "PROBLEM" mid-way
+  (Qwen pilot task 7). Advisory only; kept unchanged so H3 stays identical across models. Report as a limitation.
 - Credit-error detection (`error=credit`) is a text match on the saved simulation; confirm it on a real credit error.
 - H1-H3 agents must be registered with tau2's registry at runtime from our code (never by editing tau2-bench).
