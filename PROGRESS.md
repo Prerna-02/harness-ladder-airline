@@ -59,16 +59,21 @@ Update at the end of every session: what was done, what is next, any open proble
   - [x] Qwen moved to deepinfra/fp8 (Parasail refused all calls). Qwen pilot H0-H3 on tasks 5/7/12/39/40: 3, 2, 3, 2
         of 5; 0 errors, 0 loops, all calls on DeepInfra. Cost ~$0.018 per conversation (heavy thinking, no cache
         discount): full Qwen batches ~ $4.3 of OpenRouter credit.
-  - [ ] Qwen H0-H3 core batches (awaiting user go-ahead on ~$4.3 spend)
-- [ ] Day 3: Sonnet H0; analysis; dashboard
+  - [x] **Qwen H0-H3 core batches** (20261122T124522 H0, 20261122T140517 H1, 140522 H2, 140527 H3; H1-H3 ran in
+        parallel, results unaffected): 46, 46, 44, 43 of 60 (H3 scored on 59). 0 rule violations at every level and 0
+        gate blocks, so the rails had nothing to fix; differences are within noise. Agent cost $1.26/$1.16/$1.08/$1.14
+        (~$0.02 per conversation, ~3x Haiku, ~10x DeepSeek). All calls on DeepInfra/Mistral, 0 customer loops.
+        Qwen sometimes returns an empty reply (5-12 per batch); tau2 restarts the conversation (up to 3 tries; failed
+        attempts' cost is billed but not recorded). H3 task 10 trial 1 failed all 3: excluded as infrastructure_error.
+  - [x] Analysis (src/analyze.py) and live dashboard refreshed with all three cheap models (12/13 conditions).
+- [ ] Day 3: Sonnet H0 (5-task pilot first, Anthropic credit); audits (DeepSeek H3 over-block, customer errors)
 - [ ] Day 4: paper draft
 - [ ] Extension items (see PRD §5)
 
 ## Next step
 
-Day 2: write H1 rules (src/harness/h1_rules.md) and H2 gates + one allowed/one blocked unit test each, from the policy and
-core tasks only; H3 confirm/verify; register H1-H3 agents with tau2 at runtime; 5-task pilot per new level; then the
-Haiku H0-H3 core batches (30 tasks x 2 trials).
+Sonnet 5.5 H0 reference: 5-task pilot, check traces, then 30 tasks x 2 (or 15 tasks if Anthropic credit is tight).
+Then the audits (DeepSeek H3 over-block; hand-sample failed conversations for customer error) and the paper.
 
 ## Open problems
 
@@ -85,3 +90,6 @@ Haiku H0-H3 core batches (30 tasks x 2 trials).
   (Qwen pilot task 7). Advisory only; kept unchanged so H3 stays identical across models. Report as a limitation.
 - Credit-error detection (`error=credit`) is a text match on the saved simulation; confirm it on a real credit error.
 - H1-H3 agents must be registered with tau2's registry at runtime from our code (never by editing tau2-bench).
+- Qwen empty replies: tau2 retries the whole conversation, so a conversation that needed a retry is a fresh attempt
+  (not a continuation). Same tau2 behaviour for every model; report the retry counts. Excluded H3 task 10 trial 1 could
+  be re-run, but analyze.py does not yet merge partial re-runs into a batch.

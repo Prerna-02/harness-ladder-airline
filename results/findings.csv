@@ -6,3 +6,6 @@ date,model,finding
 2026-11-22,DeepSeek V4.1 Flash,"Clearer rules and code checks lifted DeepSeek from 41/60 (H0) to 45/60 (H1) and 49/60 (H2); rule violations fell from 6 at H0 to 0."
 2026-11-22,DeepSeek V4.1 Flash,"In the harness pilot the H3 verifier caught a real error: an upgrade charged $1,182 when the customer had confirmed $662."
 2026-11-22,Qwen3.6-35B-A3B,"Parasail rate-limited OpenRouter's shared pool and refused every call; Qwen moved to DeepInfra fp8 before any study data."
+2026-11-22,Qwen3.6-35B-A3B,"Pass rate 46/60 (H0), 46/60 (H1), 44/60 (H2), 43/59 (H3): flat within noise. Qwen broke no rule even at H0 and no gate ever fired, so the rails had nothing to fix."
+2026-11-22,Qwen3.6-35B-A3B,"Qwen is the priciest cheap model here: about $0.02 per conversation, roughly 3x Haiku (which benefits from prompt caching) and 10x DeepSeek, because it writes long replies (~630 output tokens per message)."
+2026-11-22,Qwen3.6-35B-A3B,"Qwen sometimes returned an empty reply (5-12 times per 60 conversations); tau2 restarts the conversation. One H3 conversation failed all 3 tries and is excluded as infrastructure_error (H3 scored on 59)."
