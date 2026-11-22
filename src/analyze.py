@@ -12,7 +12,7 @@ Audits read from each trace (independent of the harness switches):
   over_blocks       harness blocks of a call the answer key expects
 
 Outputs (results/): derived_runs.csv (one row per scored conversation + audits), summary.csv (one row per
-model x level), task_matrix.csv (passes per task, 0-2).
+model x level), summary_core15.csv (the same on the core_15 tasks only, to compare with Sonnet), task_matrix.csv (passes per task, 0-2).
 
     uv run --project tau2-bench python -m src.analyze
 """
@@ -43,12 +43,14 @@ def wilson(k: int, n: int, z: float = 1.96) -> tuple[float, float]:
     return (max(0.0, centre - half), min(1.0, centre + half))
 
 
-def study_batches(runs: pd.DataFrame, core: list[str], trials: int = 2) -> dict[tuple[str, str], str]:
-    """Latest complete core batch per (model, level). Anything smaller is a pilot."""
+def study_batches(runs: pd.DataFrame, task_sets: list[list[str]], trials: int = 2) -> dict[tuple[str, str], str]:
+    """Latest complete batch per (model, level) over one of the study task sets (all core tasks, or the fixed
+    core_15 half used for Sonnet). Anything else is a pilot."""
     runs = runs.assign(batch=runs.run_id.str.split("-task").str[0])
     out: dict[tuple[str, str], str] = {}
     for batch, g in runs.groupby("batch"):
-        complete = set(g.task_id) == set(core) and len(g) == len(core) * trials and (g.split == "core").all()
+        complete = (any(set(g.task_id) == set(ts) and len(g) == len(ts) * trials for ts in task_sets)
+                    and (g.split == "core").all())
         if complete:
             key = (g.model_id.iloc[0], g.harness_level.iloc[0])
             out[key] = max(out.get(key, ""), batch)  # shortcut: a re-run of a whole batch replaces it; merge partial re-runs when they exist
@@ -122,8 +124,9 @@ def failure_type(r: pd.Series) -> str:
     return "other"
 
 
-def build(runs: pd.DataFrame, core: list[str]) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame]:
-    batches = study_batches(runs, core)
+def build(runs: pd.DataFrame, core: list[str],
+          core_15: list[str]) -> tuple[pd.DataFrame, pd.DataFrame, pd.DataFrame, pd.DataFrame]:
+    batches = study_batches(runs, [core, core_15])
     runs = runs.assign(batch=runs.run_id.str.split("-task").str[0])
     study = runs[runs.batch.isin(batches.values())].copy()
     audits = {}
@@ -138,7 +141,16 @@ def build(runs: pd.DataFrame, core: list[str]) -> tuple[pd.DataFrame, pd.DataFra
     scored = study[~study.excluded].copy()
     scored["safe"] = scored.passed & (scored.rule_violations == 0)
     scored["failure_type"] = scored.apply(failure_type, axis=1)
+    summary = summarize(scored, study)
+    # Fair comparison with Sonnet: every condition on the same 15 tasks.
+    summary_15 = summarize(scored[scored.task_id.isin(core_15)], study[study.task_id.isin(core_15)])
+    matrix = (scored.groupby(["model_id", "harness_level", "task_id"]).passed.sum().astype(int)
+              .unstack("task_id").reindex(columns=core))
+    return scored, summary, summary_15, matrix
 
+
+def summarize(scored: pd.DataFrame, study: pd.DataFrame) -> pd.DataFrame:
+    """One row per model x level."""
     rows = []
     for (model, level), g in scored.groupby(["model_id", "harness_level"]):
         n, k, safe = len(g), int(g.passed.sum()), int(g.safe.sum())
@@ -148,7 +160,7 @@ def build(runs: pd.DataFrame, core: list[str]) -> tuple[pd.DataFrame, pd.DataFra
         writes = int((g.rule_violations + 0).sum())
         rows.append({
             "model_id": model, "provider": g.provider.iloc[0], "harness_level": level, "batch": g.batch.iloc[0],
-            "n_scored": n, "n_excluded": int(study[(study.model_id == model) & (study.harness_level == level)].excluded.sum()),
+            "n_tasks": g.task_id.nunique(), "n_scored": n, "n_excluded": int(study[(study.model_id == model) & (study.harness_level == level)].excluded.sum()),
             "passed": k, "pass_rate": k / n, "pass_ci_low": lo, "pass_ci_high": hi,
             "pass_hat_2": float((per_task["sum"] == per_task["count"]).mean()),  # tasks passed on every trial
             "safe_completions": safe, "safe_rate": safe / n,
@@ -165,26 +177,27 @@ def build(runs: pd.DataFrame, core: list[str]) -> tuple[pd.DataFrame, pd.DataFra
         })
     summary = pd.DataFrame(rows)
     summary["level_idx"] = summary.harness_level.map(LEVEL_ORDER.index)
-    summary = summary.sort_values(["model_id", "level_idx"]).drop(columns="level_idx")
-    matrix = (scored.groupby(["model_id", "harness_level", "task_id"]).passed.sum().astype(int)
-              .unstack("task_id").reindex(columns=core))
-    return scored, summary, matrix
+    return summary.sort_values(["model_id", "level_idx"]).drop(columns="level_idx")
 
 
 def main() -> None:
     from loguru import logger
     logger.remove()  # tau2's tools log every database write at DEBUG level; the audit replays thousands of them
     runs = pd.read_csv(RESULTS / "runs.csv", dtype=str)
-    core = yaml.safe_load((ROOT / "configs" / "tasks.yaml").read_text(encoding="utf-8"))["core"]
-    scored, summary, matrix = build(runs, core)
+    cfg = yaml.safe_load((ROOT / "configs" / "tasks.yaml").read_text(encoding="utf-8"))
+    scored, summary, summary_15, matrix = build(runs, cfg["core"], cfg["core_15"])
     scored.drop(columns=["n_violations", "n_false_blocks"], errors="ignore").to_csv(RESULTS / "derived_runs.csv", index=False)
     summary.to_csv(RESULTS / "summary.csv", index=False)
+    summary_15.to_csv(RESULTS / "summary_core15.csv", index=False)
     matrix.to_csv(RESULTS / "task_matrix.csv")
-    cols = ["model_id", "harness_level", "n_scored", "passed", "pass_rate", "safe_completions", "rule_violations",
+    cols = ["model_id", "harness_level", "n_tasks", "n_scored", "passed", "pass_rate", "safe_completions", "rule_violations",
             "unexpected_writes", "missed_writes", "blocks", "over_blocks", "agent_cost_usd", "cost_per_safe_completion"]
     with pd.option_context("display.width", 200, "display.max_columns", 20, "display.precision", 3):
         print(summary[cols].to_string(index=False))
-    print(f"\nWrote {RESULTS / 'derived_runs.csv'}, summary.csv, task_matrix.csv")
+        print("\nSame 15 tasks (core_15) for every condition:")
+        print(summary_15[["model_id", "harness_level", "n_scored", "passed", "pass_rate", "pass_ci_low",
+                          "pass_ci_high", "rule_violations", "cost_per_conversation"]].to_string(index=False))
+    print(f"\nWrote {RESULTS / 'derived_runs.csv'}, summary.csv, summary_core15.csv, task_matrix.csv")
 
 
 if __name__ == "__main__":

@@ -21,8 +21,10 @@ def test_only_complete_core_batches_count():
     core = ["0", "1", "3"]
     runs = pd.DataFrame(_rows("20261121T000000-m-H0", "m", "H0", ["0", "1"], 1)       # pilot: partial
                         + _rows("20261122T000000-m-H0", "m", "H0", core, 2)           # full batch
-                        + _rows("20261122T090000-m-H1", "m", "H1", core, 1))          # wrong trial count
-    assert an.study_batches(runs, core) == {("m", "H0"): "20261122T000000-m-H0"}
+                        + _rows("20261122T090000-m-H1", "m", "H1", core, 1)           # wrong trial count
+                        + _rows("20261122T100000-s-H0", "s", "H0", ["0", "3"], 2))    # the fixed half-set
+    assert an.study_batches(runs, [core, ["0", "3"]]) == {("m", "H0"): "20261122T000000-m-H0",
+                                                          ("s", "H0"): "20261122T100000-s-H0"}
 
 
 @pytest.mark.parametrize("fields, label", [

@@ -130,3 +130,6 @@ uv run --project tau2-bench python -m pytest tests/          # must pass before 
   Pilot batches (all of 2026-11-21/22 before the final pilot) are rehearsal data and are excluded from study results.
 - 2026-11-22: Qwen3.6-35B-A3B pin moved from parasail/fp8 to deepinfra/fp8 ($0.10/$0.95): Parasail rate-limited
   OpenRouter's shared pool (all 15 harness-pilot calls refused). No Qwen study data existed yet. Approved by the user.
+- 2026-11-23: Sonnet 5.5 H0 runs on 15 core tasks x 2 (Anthropic credit tight: ~$7.8 left vs ~$6.8 for all 30).
+  The 15 tasks are configs/tasks.yaml `core_15`, drawn with the study seed before any Sonnet study run. Sonnet is
+  compared with every other condition on those same 15 tasks (results/summary_core15.csv). Approved by the user.

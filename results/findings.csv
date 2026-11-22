@@ -9,3 +9,5 @@ date,model,finding
 2026-11-22,Qwen3.6-35B-A3B,"Pass rate 46/60 (H0), 46/60 (H1), 44/60 (H2), 43/59 (H3): flat within noise. Qwen broke no rule even at H0 and no gate ever fired, so the rails had nothing to fix."
 2026-11-22,Qwen3.6-35B-A3B,"Qwen is the priciest cheap model here: about $0.02 per conversation, roughly 3x Haiku (which benefits from prompt caching) and 10x DeepSeek, because it writes long replies (~630 output tokens per message)."
 2026-11-22,Qwen3.6-35B-A3B,"Qwen sometimes returned an empty reply (5-12 times per 60 conversations); tau2 restarts the conversation. One H3 conversation failed all 3 tries and is excluded as infrastructure_error (H3 scored on 59)."
+2026-11-23,Sonnet 5.5,"Sonnet H0 on the fixed 15-task half (core_15, 30 conversations): 19/30, the same as DeepSeek H0 and below DeepSeek H2 (24/30) and Haiku H1 (26/30) on the same tasks, at about $0.11 per conversation (~60x DeepSeek)."
+2026-11-23,Sonnet 5.5,"3 of Sonnet's 11 failures did the right database changes but wrote amounts as '$1,786'; tau2's substring scorer expects '1786', so they fail. A grader artifact (like 'four' vs '4'); the grader is not changed, reported as a limitation."

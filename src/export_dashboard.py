@@ -34,7 +34,7 @@ def main() -> None:
     runs = pd.read_csv(RESULTS / "derived_runs.csv", dtype={"task_id": str})
     summary["model"] = summary.model_id.map(NAMES).fillna(summary.model_id)
     summary["condition"] = summary.model + " · " + summary.harness_level
-    keep = ["condition", "model", "harness_level", "provider", "n_scored", "n_excluded", "passed", "pass_rate",
+    keep = ["condition", "model", "harness_level", "provider", "n_tasks", "n_scored", "n_excluded", "passed", "pass_rate",
             "pass_ci_low", "pass_ci_high", "pass_hat_2", "safe_completions", "safe_rate", "rule_violations",
             "unexpected_writes", "missed_writes", "blocks", "over_blocks", "agent_cost_usd", "customer_cost_usd",
             "cost_per_conversation", "cost_per_safe_completion", "avg_input_tokens", "avg_output_tokens", "avg_turns",

@@ -66,14 +66,18 @@ Update at the end of every session: what was done, what is next, any open proble
         Qwen sometimes returns an empty reply (5-12 per batch); tau2 restarts the conversation (up to 3 tries; failed
         attempts' cost is billed but not recorded). H3 task 10 trial 1 failed all 3: excluded as infrastructure_error.
   - [x] Analysis (src/analyze.py) and live dashboard refreshed with all three cheap models (12/13 conditions).
-- [ ] Day 3: Sonnet H0 (5-task pilot first, Anthropic credit); audits (DeepSeek H3 over-block, customer errors)
+- [x] Sonnet H0 pilot (tasks 5/7/12/39/40, 20261122T195821): 2/5, $0.57, clean (same hard tasks Haiku failed).
+  - [x] **Sonnet H0 on core_15** (15 seeded tasks x 2, 20261122T200552): 19/30, $3.37, 0 errors. On the same 15 tasks:
+        Haiku 22/26/22/25, DeepSeek 19/21/24/21, Qwen 20/24/22/21 (H0..H3). Sonnet = DeepSeek H0, below DeepSeek H2,
+        at ~60x DeepSeek's cost. 3 of its 11 failures are '$1,786' vs '1786' (substring scorer). Anthropic left ~$4.43.
+  - [x] analyze.py accepts the core_15 batch and writes summary_core15.csv (every condition on the same 15 tasks).
+- [ ] Day 3: audits (DeepSeek H3 over-block; hand-sample failures for customer error; number-format scorer misses)
 - [ ] Day 4: paper draft
 - [ ] Extension items (see PRD §5)
 
 ## Next step
 
-Sonnet 5.5 H0 reference: 5-task pilot, check traces, then 30 tasks x 2 (or 15 tasks if Anthropic credit is tight).
-Then the audits (DeepSeek H3 over-block; hand-sample failed conversations for customer error) and the paper.
+Core runs complete (13/13 conditions). Next: the audits (DeepSeek H3 over-block; hand-sample failed conversations for customer error) and the paper.
 
 ## Open problems
 

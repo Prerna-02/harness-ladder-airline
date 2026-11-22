@@ -17,3 +17,8 @@ core: ["0", "1", "3", "4", "5", "7", "9", "10", "11", "12", "14", "15", "17", "2
 
 held_out: ["2", "6", "8", "13", "16", "18", "19", "22", "24", "25", "26", "29", "30", "31", "32",
            "35", "37", "44", "45", "48"]
+
+# Sonnet 5.5 reference runs on half the core tasks when Anthropic credit is tight (CLAUDE.md "Scope").
+# Drawn once, before any Sonnet study run: random.Random(seed).sample(core, 15), kept in core order.
+# Compare Sonnet with the other models on these same 15 tasks only.
+core_15: ["0", "4", "7", "14", "15", "20", "23", "27", "33", "34", "38", "39", "46", "47", "49"]
