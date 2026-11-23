@@ -71,13 +71,22 @@ Update at the end of every session: what was done, what is next, any open proble
         Haiku 22/26/22/25, DeepSeek 19/21/24/21, Qwen 20/24/22/21 (H0..H3). Sonnet = DeepSeek H0, below DeepSeek H2,
         at ~60x DeepSeek's cost. 3 of its 11 failures are '$1,786' vs '1786' (substring scorer). Anthropic left ~$4.43.
   - [x] analyze.py accepts the core_15 batch and writes summary_core15.csv (every condition on the same 15 tasks).
-- [ ] Day 3: audits (DeepSeek H3 over-block; hand-sample failures for customer error; number-format scorer misses)
-- [ ] Day 4: paper draft
+- [x] **Audits** (2026-11-23):
+  - Over-block (DeepSeek H3 task 17): gates check each call in a multi-call message against the database as it is
+    before any of them run, so a later call that depends on an earlier one (bags after a cabin upgrade) can be
+    blocked wrongly. 1 case in 480 harness conversations; the agent retried one call at a time and all passed.
+    Not fixed (would change H2/H3 after the runs); reported as a limitation.
+  - Grader: 18 communicate-only failures, 0 with the fact in another format. The substring scorer strips commas.
+    The earlier "$1,786 vs 1786" note was wrong and is corrected in results/findings.csv.
+  - Customer error: results/audit_failures.csv, 26 failures sampled (2 per condition, pandas random_state=300):
+    16 agent, 7 customer (27%, 95% 14-46%), 3 unclear. Task 7 customer cancels extra bookings in 9/26 conversations.
+    Customer errors hit every condition, so they lower absolute pass rates more than they bias the comparison.
+- [ ] Day 4: paper draft and model card
 - [ ] Extension items (see PRD §5)
 
 ## Next step
 
-Core runs complete (13/13 conditions). Next: the audits (DeepSeek H3 over-block; hand-sample failed conversations for customer error) and the paper.
+Core runs and audits complete. Next: the paper draft and model card (Day 4).
 
 ## Open problems
 
@@ -88,8 +97,7 @@ Core runs complete (13/13 conditions). Next: the audits (DeepSeek H3 over-block;
   runner.build_row, and exclude pilot batches (20261121T180557, 20261121T184215, 20261121T184407) from study results.
 - Gate coverage gap: the insurance-covered-reason rule (health/weather) is free text; the cancel gate allows any
   insured reservation and leaves the reason to the prompt. Report in the paper.
-- The simulated customer sometimes goes off-script (task 7, H0-H2). Audit failed conversations for customer error
-  before attributing failures to the agent (sample by hand; report the rate).
+- The simulated customer goes off-script in about 1 in 4 sampled failures (results/audit_failures.csv); report it.
 - H3 verifier judges each single change against the whole request, so in multi-step tasks it flags "PROBLEM" mid-way
   (Qwen pilot task 7). Advisory only; kept unchanged so H3 stays identical across models. Report as a limitation.
 - Credit-error detection (`error=credit`) is a text match on the saved simulation; confirm it on a real credit error.
