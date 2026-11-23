@@ -1,0 +1,36 @@
+<section id="limits">
+<div class="head">
+<p class="eyebrow rise" style="--i:0;">How far to trust this</p>
+<h2 class="rise" style="--i:1;">Honest limits</h2>
+</div>
+<div class="row">
+<div class="card rise" style="--i:2;">
+<h3>Small samples</h3>
+<p class="txt">60 conversations per condition (30 for Sonnet). Gaps under about 15 points can be luck.</p>
+</div>
+<div class="card rise" style="--i:3;">
+<h3>A simulated customer</h3>
+<p class="txt">About 1 in 4 sampled failures came from the customer going off-script. It hits every condition alike.</p>
+</div>
+<div class="card rise" style="--i:4;">
+<h3>One domain</h3>
+<p class="txt">Airline support only, and its tasks rarely tempt a model to break rules.</p>
+</div>
+</div>
+<div class="row">
+<div class="card rise" style="--i:5;">
+<h3>Rules by construction</h3>
+<p class="txt">Zero violations at H2 and H3 is partly built in: the audit uses the same rules H2 enforces.</p>
+</div>
+<div class="card rise" style="--i:6;">
+<h3>Gate limits</h3>
+<p class="txt">Free-text rules (a valid insurance reason) can’t be checked in code. Several changes in one message are checked against the old state.</p>
+</div>
+<div class="card rise" style="--i:7;">
+<h3>Point in time</h3>
+<p class="txt">Model versions and hosts pinned in November 2026; results may not hold for later releases.</p>
+</div>
+</div>
+<div class="foot"><p>Harness ladder · τ²-bench airline</p><div class="pg"></div></div>
+<aside>None of these is hidden in the write-up. Every conversation has its full trace, so anyone can recheck a number.</aside>
+</section>

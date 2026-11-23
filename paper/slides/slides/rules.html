@@ -1,0 +1,26 @@
+<section id="rules" class="dark">
+<div class="head">
+<p class="eyebrow rise" style="--i:0;">Result 2 · rule-breaking</p>
+<h2 class="rise" style="--i:1;">The harness fixed rule-breaking, where there was any</h2>
+</div>
+<div class="row">
+<div class="card rise" style="--i:2; border-color:#F0A35E;">
+<p class="txt">DeepSeek V4.1 Flash</p>
+<p class="huge" style="color:#F0A35E; font-size:128px;">6 → 0</p>
+<p class="txt">rule-breaking changes, H0 → every level above</p>
+</div>
+<div class="card rise" style="--i:3;">
+<p class="txt">Haiku 5.5</p>
+<p class="huge" style="font-size:128px;">1 → 0</p>
+<p class="txt">one basic economy flight changed at H0</p>
+</div>
+<div class="card rise" style="--i:4;">
+<p class="txt">Qwen3.6-35B</p>
+<p class="huge" style="font-size:128px;">0</p>
+<p class="txt">no rule broken at any level</p>
+</div>
+</div>
+<p class="small rise" style="--i:5;">Counted by replaying every executed change through the H2 rules on a fresh database. The code checks fired only 3 times in 480 harness conversations; 1 of those blocked a correct change.</p>
+<div class="foot"><p>Harness ladder · τ²-bench airline</p><div class="pg"></div></div>
+<aside>At H2 and H3 a zero is partly by design, because the same rules are enforced. The interesting point is H1: clearer written rules alone took DeepSeek to zero. The one wrong block came from three dependent changes sent in one message; the agent retried them one at a time and they passed.</aside>
+</section>

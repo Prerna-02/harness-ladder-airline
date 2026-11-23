@@ -81,7 +81,8 @@ Update at the end of every session: what was done, what is next, any open proble
   - Customer error: results/audit_failures.csv, 26 failures sampled (2 per condition, pandas random_state=300):
     16 agent, 7 customer (27%, 95% 14-46%), 3 unclear. Task 7 customer cancels extra bookings in 9/26 conversations.
     Customer errors hit every condition, so they lower absolute pass rates more than they bias the comparison.
-- [ ] Day 4: paper draft and model card
+- [x] Model card (paper/model_card.md) and animated findings deck (Slides artifact; source in paper/slides/), 2026-11-24.
+- [ ] Day 4: paper draft
 - [ ] Extension items (see PRD §5)
 
 ## Next step

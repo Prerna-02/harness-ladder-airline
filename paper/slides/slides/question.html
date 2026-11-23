@@ -1,0 +1,26 @@
+<section id="question" class="alt">
+<div class="head">
+<p class="eyebrow rise" style="--i:0;">The question</p>
+<h2 class="rise" style="--i:1; max-width:1500px;">“Use a cheap model and add guardrails.” Does that actually work?</h2>
+</div>
+<div class="row" style="flex:1;">
+<div class="card rise" style="--i:2;">
+<h3>Held fixed</h3>
+<ul class="list">
+<li>The AI model under test</li>
+<li>The 30 customer tasks and their answer keys</li>
+<li>The simulated customer: same model, prompt and settings</li>
+</ul>
+</div>
+<div class="card rise" style="--i:3; border-color:var(--accent);">
+<h3>Changed, one at a time</h3>
+<ul class="list">
+<li>The harness level: H0 → H1 → H2 → H3</li>
+<li>Nothing else between two conditions</li>
+<li>Each result traced back to one layer</li>
+</ul>
+</div>
+</div>
+<div class="foot"><p>Harness ladder · τ²-bench airline</p><div class="pg"></div></div>
+<aside>A harness is everything around the model: instructions, checks in code, confirmation steps. Changing one variable at a time is what lets us say which layer caused a change.</aside>
+</section>

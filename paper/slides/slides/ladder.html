@@ -1,0 +1,30 @@
+<section id="ladder">
+<div class="head">
+<p class="eyebrow rise" style="--i:0;">The harness ladder</p>
+<h2 class="rise" style="--i:1;">Four levels, each adds one layer</h2>
+</div>
+<div class="steps">
+<div class="step rise" style="--i:2; height:360px; background:#C9D1DF;">
+<p class="tag">H0</p>
+<h3>Rulebook</h3>
+<p class="txt">The standard agent, given the airline policy as written.</p>
+</div>
+<div class="step rise" style="--i:3; height:440px; background:#B5CFEA;">
+<p class="tag">H1 = H0 +</p>
+<h3>Clear rules</h3>
+<p class="txt">Policy rewritten as short numbered rules, plus a checklist read back before any change.</p>
+</div>
+<div class="step rise" style="--i:4; height:520px; background:#F2B77F;">
+<p class="tag">H2 = H1 +</p>
+<h3>Code checks</h3>
+<p class="txt">10 rules checked in code. A change that breaks one is blocked, with the reason.</p>
+</div>
+<div class="step rise" style="--i:5; height:600px; background:#EDCF85;">
+<p class="tag">H3 = H2 +</p>
+<h3>Confirm + verify</h3>
+<p class="txt">No change without a clear “yes”. A second model call checks each change after it runs.</p>
+</div>
+</div>
+<div class="foot"><p>Harness ladder · τ²-bench airline</p><div class="pg"></div></div>
+<aside>The levels are cumulative. H2’s code checks cover things like basic economy flights that can’t be changed, bag prices and payment limits. They only read the database; they never change it.</aside>
+</section>
