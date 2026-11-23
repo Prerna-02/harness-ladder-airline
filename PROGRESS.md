@@ -87,7 +87,7 @@ Update at the end of every session: what was done, what is next, any open proble
 
 ## Next step
 
-Core runs and audits complete. Next: the paper draft and model card (Day 4).
+Core runs, audits, model card and deck complete. Next: the paper draft (Day 4).
 
 ## Open problems
 
